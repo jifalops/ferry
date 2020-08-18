@@ -5,8 +5,7 @@ import 'package:gql_exec/gql_exec.dart';
 import "package:ferry/ferry.dart";
 import 'package:test/test.dart';
 
-import './graphql/all_pokemon.req.gql.dart';
-import './graphql/all_pokemon.data.gql.dart';
+import '../../test_graphql/lib/queries/variables/human_with_args.req.gql.dart';
 
 class MockLink extends Mock implements Link {}
 
@@ -15,15 +14,13 @@ void main() {
     test('Returns a response with GraphQL errors', () async {
       final mockLink = MockLink();
 
-      final allPokemonReq = AllPokemon(
-        buildVars: (b) => b..first = 3,
-      );
+      final human = GHumanWithArgs((b) => b..vars.id = "123");
 
       final graphQLErrors = [
         GraphQLError(message: "Your GraphQL is not valid")
       ];
 
-      when(mockLink.request(allPokemonReq, any)).thenAnswer(
+      when(mockLink.request(human.execRequest, any)).thenAnswer(
         (_) => Stream.value(Response(errors: graphQLErrors)),
       );
 
@@ -32,13 +29,13 @@ void main() {
         options: ClientOptions(addTypename: false),
       );
 
-      final response = QueryResponse<$AllPokemon>(
-        queryRequest: allPokemonReq,
+      final response = OperationResponse(
+        operationRequest: human,
         graphqlErrors: graphQLErrors,
         dataSource: DataSource.Link,
       );
 
-      expect(client.responseStream(allPokemonReq), emits(response));
+      expect(client.responseStream(human), emits(response));
     });
   });
 
@@ -46,26 +43,24 @@ void main() {
     test('Returns a network error when Link throws', () async {
       final mockLink = MockLink();
 
-      final allPokemonReq = AllPokemon(
-        buildVars: (b) => b..first = 3,
-      );
+      final human = GHumanWithArgs((b) => b..vars.id = "123");
 
       final exception = ServerException(parsedResponse: Response());
 
-      when(mockLink.request(allPokemonReq, any)).thenThrow(exception);
+      when(mockLink.request(human.execRequest, any)).thenThrow(exception);
 
       final client = Client(
         link: mockLink,
         options: ClientOptions(addTypename: false),
       );
 
-      final response = QueryResponse<$AllPokemon>(
-        queryRequest: allPokemonReq,
+      final response = OperationResponse(
+        operationRequest: human,
         linkException: exception,
         dataSource: DataSource.Link,
       );
 
-      expect(client.responseStream(allPokemonReq), emits(response));
+      expect(client.responseStream(human), emits(response));
     });
   });
 }
